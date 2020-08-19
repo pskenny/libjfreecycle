@@ -15,25 +15,49 @@ import io.github.pskenny.libjfreecycle.model.Post;
 
 public class PostUtil {
 
-    private PostUtil(){}
+    // Default amount of results to retrieve
+    private static final int DEFAULT_RESULTS_SIZE = 10;
+
+    private PostUtil() {
+    }
 
     public static Collection<Post> getPosts(String groupId) {
         return getPosts(groupId, Post.Type.ALL);
     }
 
     public static Collection<Post> getPosts(String groupId, Post.Type type) {
+        return getPosts(groupId, type, DEFAULT_RESULTS_SIZE);
+    }
+
+    /**
+     * 
+     * @param groupId Name of group to retrieve posts
+     * @param type Post type
+     * @param results Maximum results to return (1 - 100)
+     * @return
+     */
+    public static Collection<Post> getPosts(String groupId, Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
         SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.ENGLISH);
 
         final String url = new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId)
-                .append("/posts/").append(type.name().toLowerCase()).toString();
+                .append("/posts/").append(type.name().toLowerCase()).append("?resultsperpage=").append(results)
+                .toString();
         try {
             Document doc = Jsoup.connect(url).get();
             Element table = doc.getElementById("group_posts_table");
+            if(table == null) {
+                // no results
+                return posts;
+            } else {
+                // get how many posts there are (in the next node after table)
+                Element groupBox = doc.getElementById("group_box");
+                System.out.println(groupBox.children().get(7).text());
+            }
             Elements tableRow = table.getElementsByTag("tr");
-            
+
             tableRow.forEach(x -> {
-                Post p = parsePostFromTableRow(x, formatter);
+                Post p = parsePostsFromTableRow(x, formatter);
                 posts.add(p);
             });
         } catch (IOException ex) {
@@ -43,7 +67,7 @@ public class PostUtil {
         return posts;
     }
 
-    private static Post parsePostFromTableRow(Element row, SimpleDateFormat formatter) {
+    private static Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
         // ☠️ Beware of the String/DOM manipulation filth that follows ☠️
         // Table column 1 contains post type (OFFER/WANTED), date/time, post id
         String column1 = row.child(0).text();
