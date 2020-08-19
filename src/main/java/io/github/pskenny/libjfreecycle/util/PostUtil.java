@@ -16,13 +16,13 @@ import io.github.pskenny.libjfreecycle.model.Post;
 public class PostUtil {
 
     // Default amount of results to retrieve
-    private static final int DEFAULT_RESULTS_SIZE = 10;
+    private static final int DEFAULT_RESULTS_SIZE = 100;
 
     private PostUtil() {
     }
 
     /**
-     * Return up to ten most recent posts from the given group.
+     * Return up to hundred most recent posts from the given group.
      * 
      * @param groupId Group ID to search
      * @return Posts
@@ -32,7 +32,7 @@ public class PostUtil {
     }
 
     /**
-     * Return up to ten most recent posts of type given from group given.
+     * Return up to hundred most recent posts of type given from group given.
      * 
      * @param groupId Name of group to retrieve posts
      * @param type    Post type
@@ -43,7 +43,7 @@ public class PostUtil {
     }
 
     /**
-     * Return ten most recent posts of type given from group given.
+     * Return hundred most recent posts of type given from group given.
      * 
      * @param groupId Name of group to retrieve posts
      * @param type    Post type
