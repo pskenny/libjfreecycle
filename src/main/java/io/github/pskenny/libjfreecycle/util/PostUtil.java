@@ -60,16 +60,12 @@ public class PostUtil {
         try {
             Document doc = Jsoup.connect(url).get();
             Element table = doc.getElementById("group_posts_table");
-            if(table == null) {
-                // no results
-                return posts;
-            } else {
-                // get how many posts there are (in the next node after table)
-                Element groupBox = doc.getElementById("group_box");
-                System.out.println(groupBox.children().get(7).text());
-            }
-            Elements tableRow = table.getElementsByTag("tr");
 
+            // no results
+            if (table == null)
+                return posts;
+            
+            Elements tableRow = table.getElementsByTag("tr");
             tableRow.forEach(x -> {
                 Post p = parsePostsFromTableRow(x, formatter);
                 posts.add(p);
