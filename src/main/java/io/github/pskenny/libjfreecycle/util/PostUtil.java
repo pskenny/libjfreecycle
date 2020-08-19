@@ -21,20 +21,34 @@ public class PostUtil {
     private PostUtil() {
     }
 
+    /**
+     * Return up to ten most recent posts from the given group.
+     * 
+     * @param groupId Group ID to search
+     * @return Posts
+     */
     public static Collection<Post> getPosts(String groupId) {
         return getPosts(groupId, Post.Type.ALL);
     }
 
+    /**
+     * Return up to ten most recent posts of type given from group given.
+     * 
+     * @param groupId Name of group to retrieve posts
+     * @param type    Post type
+     * @return Posts
+     */
     public static Collection<Post> getPosts(String groupId, Post.Type type) {
         return getPosts(groupId, type, DEFAULT_RESULTS_SIZE);
     }
 
     /**
+     * Return ten most recent posts of type given from group given.
      * 
      * @param groupId Name of group to retrieve posts
-     * @param type Post type
+     * @param type    Post type
      * @param results Maximum results to return (1 - 100)
-     * @return
+     * @return Posts
      */
     public static Collection<Post> getPosts(String groupId, Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
