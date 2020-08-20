@@ -85,19 +85,14 @@ public class Group {
     }
 
     private Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
-        // ☠️ Beware of the String/DOM manipulation filth that follows ☠️
-        // Table column 1 contains post type (OFFER/WANTED), date/time, post id
-        String column1 = row.child(0).text();
-        String[] splitCol1 = column1.split(" ");
-        String type = splitCol1[1];
-        String datetime = column1.substring((splitCol1[0].length() + splitCol1[1].length() + 2),
-                column1.length() - (splitCol1[7].length() + 1));
-        long postId = Long
-                .parseLong(splitCol1[splitCol1.length - 1].substring(2, splitCol1[splitCol1.length - 1].length() - 1));
-        // Table column 2 contains the title and location
-        String column2 = row.child(1).text();
+        String type = row.child(0).child(0).child(0).ownText();
+        String dateTime = row.child(0).ownText().substring(0, row.child(0).ownText().lastIndexOf(' '));
+        String postId = row.child(0).ownText().substring(row.child(0).ownText().lastIndexOf(' ') + 3,
+                row.child(0).ownText().length() - 1);
         String title = row.child(1).child(0).text();
-        String location = column2.substring(title.length() + 2, column2.length() - 13);
+        String location = row.child(1).ownText();
+        // Remove parenthesis from location
+        location = location.substring(1, location.length() - 1);
 
         Post post = new Post();
         if (type.equals("OFFER")) {
@@ -105,12 +100,11 @@ public class Group {
         } else {
             post.setType(Post.Type.WANTED);
         }
-        post.setId(postId);
+        post.setId(Long.parseLong(postId));
         post.setTitle(title);
         post.setLocation(location);
-
         try {
-            post.setDate(formatter.parse(datetime));
+            post.setDate(formatter.parse(dateTime));
         } catch (java.text.ParseException ex) {
             // Don't care atm
         }
