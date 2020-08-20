@@ -34,7 +34,7 @@ public class Group {
     }
 
     /**
-     * Return ten most recent posts of type given.
+     * Return ten most recent posts of type given if available.
      * 
      * @param type Post type
      * @return Posts
@@ -44,9 +44,10 @@ public class Group {
     }
 
     /**
-     * Return hundred most recent posts of type given from group given.
+     * Returns number of results given of most recent posts of type given.
      * 
-     * Note: results must be between 10 - 100. Any number out of these bounds returns 10 posts.
+     * Note: results must be between 10 - 100. Any number out of this range returns
+     * 10 posts.
      * 
      * @param type    Post type
      * @param results Maximum results to return
@@ -54,8 +55,8 @@ public class Group {
      */
     public Collection<Post> getPosts(Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
-
         final String url = buildURL(type, results);
+        
         try {
             Document doc = Jsoup.connect(url).get();
             Element table = doc.getElementById("group_posts_table");
@@ -63,7 +64,7 @@ public class Group {
             // table isn't in DOM, therefore no results
             if (table == null)
                 return posts;
-            
+
             Elements tableRow = table.getElementsByTag("tr");
             tableRow.forEach(x -> {
                 Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
@@ -77,16 +78,24 @@ public class Group {
     }
 
     /**
-     * Create freecycle.org results page url.
+     * Creates freecycle.org results page URL with resultsperpage attribute.
+     * 
+     * @return freecycle.org results page URL
      */
     private String buildURL(Post.Type type, int results) {
         return new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId).append("/posts/")
                 .append(type.name().toLowerCase()).append("?resultsperpage=").append(results).toString();
     }
 
+    /**
+     * Parses group_posts_table table row element into a Post object.
+     * 
+     * @return Post
+     */
     private Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
         String type = row.child(0).child(0).child(0).ownText();
         String dateTime = row.child(0).ownText().substring(0, row.child(0).ownText().lastIndexOf(' '));
+        // magic numbers in substringing removes " (#" and ")"
         String postId = row.child(0).ownText().substring(row.child(0).ownText().lastIndexOf(' ') + 3,
                 row.child(0).ownText().length() - 1);
         String title = row.child(1).child(0).text();
