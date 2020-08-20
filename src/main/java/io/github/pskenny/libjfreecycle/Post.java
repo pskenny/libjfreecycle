@@ -1,4 +1,4 @@
-package io.github.pskenny.libjfreecycle.model;
+package io.github.pskenny.libjfreecycle;
 
 import java.util.Date;
 

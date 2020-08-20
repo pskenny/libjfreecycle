@@ -1,4 +1,4 @@
-package io.github.pskenny.libjfreecycle.util;
+package io.github.pskenny.libjfreecycle;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -11,64 +11,63 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import io.github.pskenny.libjfreecycle.model.Post;
-
-public class PostUtil {
+public class Group {
 
     // Default amount of results to retrieve
-    private static final int DEFAULT_RESULTS_SIZE = 100;
+    private final int DEFAULT_RESULTS_SIZE = 10;
+    private SimpleDateFormat DEFAULT_DATE_FORMAT;
+    private String groupId;
 
-    private PostUtil() {
+    public Group(String groupId) {
+        this.groupId = groupId;
+
+        DEFAULT_DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.ENGLISH);
     }
 
     /**
-     * Return up to hundred most recent posts from the given group.
+     * Return ten most recent posts if available.
      * 
-     * @param groupId Group ID to search
      * @return Posts
      */
-    public static Collection<Post> getPosts(String groupId) {
-        return getPosts(groupId, Post.Type.ALL);
+    public Collection<Post> getPosts() {
+        return getPosts(Post.Type.ALL);
     }
 
     /**
-     * Return up to hundred most recent posts of type given from group given.
+     * Return ten most recent posts of type given.
      * 
-     * @param groupId Name of group to retrieve posts
-     * @param type    Post type
+     * @param type Post type
      * @return Posts
      */
-    public static Collection<Post> getPosts(String groupId, Post.Type type) {
-        return getPosts(groupId, type, DEFAULT_RESULTS_SIZE);
+    public Collection<Post> getPosts(Post.Type type) {
+        return getPosts(type, DEFAULT_RESULTS_SIZE);
     }
 
     /**
      * Return hundred most recent posts of type given from group given.
      * 
-     * @param groupId Name of group to retrieve posts
+     * Note: results must be between 10 - 100. Any number out of these bounds returns 10 posts.
+     * 
      * @param type    Post type
-     * @param results Maximum results to return (1 - 100)
+     * @param results Maximum results to return
      * @return Posts
      */
-    public static Collection<Post> getPosts(String groupId, Post.Type type, int results) {
+    public Collection<Post> getPosts(Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
-        SimpleDateFormat formatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.ENGLISH);
 
-        final String url = new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId)
-                .append("/posts/").append(type.name().toLowerCase()).append("?resultsperpage=").append(results)
-                .toString();
+        final String url = buildURL(type, results);
         try {
             Document doc = Jsoup.connect(url).get();
             Element table = doc.getElementById("group_posts_table");
 
-            // no results
+            // table isn't in DOM, therefore no results
             if (table == null)
                 return posts;
             
             Elements tableRow = table.getElementsByTag("tr");
             tableRow.forEach(x -> {
-                Post p = parsePostsFromTableRow(x, formatter);
-                posts.add(p);
+                Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
+                posts.add(post);
             });
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -77,7 +76,15 @@ public class PostUtil {
         return posts;
     }
 
-    private static Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
+    /**
+     * Create freecycle.org results page url.
+     */
+    private String buildURL(Post.Type type, int results) {
+        return new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId).append("/posts/")
+                .append(type.name().toLowerCase()).append("?resultsperpage=").append(results).toString();
+    }
+
+    private Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
         // ☠️ Beware of the String/DOM manipulation filth that follows ☠️
         // Table column 1 contains post type (OFFER/WANTED), date/time, post id
         String column1 = row.child(0).text();
@@ -110,5 +117,4 @@ public class PostUtil {
 
         return post;
     }
-
 }
