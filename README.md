@@ -15,3 +15,24 @@ Group group = new Group("GalwayIE");
 // Retrieves 10 most recent posts now
 ArrayList<Post> posts = group.getPosts();
 ```
+
+## Maven
+
+To use this you must package and install this library to your local Maven repository using the following commands:
+
+```bash
+> git clone https://github.com/pskenny/libjfreecycle # Clone libjfreecycle
+> cd libjfreecycle
+> mvn package # Package libjfreecycle
+> mvn install # Install to local Maven repository
+```
+
+Then add to your `pom.xml` dependencies:
+
+```xml
+    <dependency>
+      <groupId>io.github.pskenny</groupId>
+      <artifactId>libjfreecycle</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+```
