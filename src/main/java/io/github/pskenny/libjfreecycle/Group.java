@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Locale;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import io.github.pskenny.libjfreecycle.util.PostsUtil;
 
 /**
  * Object to handle groups and posts in a group e.g. retrieving posts from a
@@ -19,15 +20,10 @@ import org.jsoup.select.Elements;
  */
 public class Group {
 
-    // Default amount of results to retrieve
-    private final int DEFAULT_RESULTS_SIZE = 10;
-    private SimpleDateFormat DEFAULT_DATE_FORMAT;
     private String groupId;
 
     public Group(String groupId) {
         this.groupId = groupId;
-
-        DEFAULT_DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy", Locale.ENGLISH);
     }
 
     /**
@@ -46,7 +42,7 @@ public class Group {
      * @return Posts
      */
     public Collection<Post> getPosts(Post.Type type) {
-        return getPosts(type, DEFAULT_RESULTS_SIZE);
+        return getPosts(type, PostsUtil.DEFAULT_RESULTS_SIZE);
     }
 
     /**
@@ -68,7 +64,7 @@ public class Group {
 
         do {
             ArrayList<Post> pagePosts = new ArrayList<>();
-            final String url = buildURL(type, ++page, search);
+            final String url = PostsUtil.buildPostsURL(groupId, type, page, results);
 
             try {
                 Document doc = Jsoup.connect(url).get();
@@ -80,7 +76,7 @@ public class Group {
 
                 Elements tableRow = table.getElementsByTag("tr");
                 tableRow.forEach(x -> {
-                    Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
+                    Post post = parsePostsFromTableRow(x, PostsUtil.DEFAULT_DATE_FORMAT);
                     pagePosts.add(post);
                 });
 
@@ -103,17 +99,6 @@ public class Group {
         } while (posts.size() < results);
 
         return posts;
-    }
-
-    /**
-     * Creates freecycle.org results page URL with resultsperpage attribute.
-     * 
-     * @return freecycle.org results page URL
-     */
-    private String buildURL(Post.Type type, int page, int results) {
-        return new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId).append("/posts/")
-                .append(type.name().toLowerCase()).append("?").append("page=").append(page).append("&resultsperpage=")
-                .append(results).toString();
     }
 
     /**
