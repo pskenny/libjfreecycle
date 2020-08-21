@@ -11,6 +11,12 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+/**
+ * Object to handle groups and posts in a group e.g. retrieving posts from a
+ * group.
+ * 
+ * @author Paul Kenny
+ */
 public class Group {
 
     // Default amount of results to retrieve
@@ -46,9 +52,6 @@ public class Group {
     /**
      * Returns number of results given of most recent posts of type given.
      * 
-     * Note: results must be between 10 - 100. Any number out of this range returns
-     * 10 posts.
-     * 
      * @param type    Post type
      * @param results Maximum results to return
      * @return Posts
@@ -58,12 +61,10 @@ public class Group {
         int page = 0;
         int search = results;
 
-        // results wanted is more than can be displayed on a single page requested
-        // so set amount to get per page to max
-        if (results > 100) {
-            // can only get 100 posts per page
+        // If results is more than can be displayed on a single page then request
+        // maximum amount possible per page (100)
+        if (results > 100)
             search = 100;
-        }
 
         do {
             ArrayList<Post> pagePosts = new ArrayList<>();
@@ -73,7 +74,7 @@ public class Group {
                 Document doc = Jsoup.connect(url).get();
                 Element table = doc.getElementById("group_posts_table");
 
-                // table isn't in DOM, therefore no results
+                // table isn't in DOM, therefore no (more) results
                 if (table == null)
                     return posts;
 
@@ -82,9 +83,10 @@ public class Group {
                     Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
                     pagePosts.add(post);
                 });
-                
-                // cut off list to not add extra posts
-                // Note: This is inefficient, it requests more posts than is needed
+
+                // Cut end of list off to not excede results argument
+                // Note: This is inefficient, it requests more posts than is needed from
+                // freecycle.org
                 if (results - posts.size() < search) {
                     posts.addAll(pagePosts.subList(0, results - posts.size()));
                 } else {
@@ -122,7 +124,7 @@ public class Group {
     private Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
         String type = row.child(0).child(0).child(0).ownText();
         String dateTime = row.child(0).ownText().substring(0, row.child(0).ownText().lastIndexOf(' '));
-        // magic numbers in substringing removes " (#" and ")"
+        // magic numbers in substring removes " (#" and ")"
         String postId = row.child(0).ownText().substring(row.child(0).ownText().lastIndexOf(' ') + 3,
                 row.child(0).ownText().length() - 1);
         String title = row.child(1).child(0).text();
