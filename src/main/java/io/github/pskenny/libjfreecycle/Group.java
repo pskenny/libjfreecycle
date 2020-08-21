@@ -55,24 +55,50 @@ public class Group {
      */
     public Collection<Post> getPosts(Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
-        final String url = buildURL(type, results);
-        
-        try {
-            Document doc = Jsoup.connect(url).get();
-            Element table = doc.getElementById("group_posts_table");
+        int page = 0;
+        int search = results;
 
-            // table isn't in DOM, therefore no results
-            if (table == null)
-                return posts;
-
-            Elements tableRow = table.getElementsByTag("tr");
-            tableRow.forEach(x -> {
-                Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
-                posts.add(post);
-            });
-        } catch (IOException ex) {
-            ex.printStackTrace();
+        // results wanted is more than can be displayed on a single page requested
+        // so set amount to get per page to max
+        if (results > 100) {
+            // can only get 100 posts per page
+            search = 100;
         }
+
+        do {
+            ArrayList<Post> pagePosts = new ArrayList<>();
+            final String url = buildURL(type, ++page, search);
+
+            try {
+                Document doc = Jsoup.connect(url).get();
+                Element table = doc.getElementById("group_posts_table");
+
+                // table isn't in DOM, therefore no results
+                if (table == null)
+                    return posts;
+
+                Elements tableRow = table.getElementsByTag("tr");
+                tableRow.forEach(x -> {
+                    Post post = parsePostsFromTableRow(x, DEFAULT_DATE_FORMAT);
+                    pagePosts.add(post);
+                });
+                
+                // cut off list to not add extra posts
+                // Note: This is inefficient, it requests more posts than is needed
+                if (results - posts.size() < search) {
+                    posts.addAll(pagePosts.subList(0, results - posts.size()));
+                } else {
+                    posts.addAll(pagePosts);
+                }
+
+                // page returned less posts than requested. It's reached the end.
+                if (pagePosts.size() < search) {
+                    break;
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        } while (posts.size() < results);
 
         return posts;
     }
@@ -82,9 +108,10 @@ public class Group {
      * 
      * @return freecycle.org results page URL
      */
-    private String buildURL(Post.Type type, int results) {
+    private String buildURL(Post.Type type, int page, int results) {
         return new StringBuilder().append("http://groups.freecycle.org/group/").append(groupId).append("/posts/")
-                .append(type.name().toLowerCase()).append("?resultsperpage=").append(results).toString();
+                .append(type.name().toLowerCase()).append("?").append("page=").append(page).append("&resultsperpage=")
+                .append(results).toString();
     }
 
     /**
