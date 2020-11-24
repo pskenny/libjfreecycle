@@ -21,7 +21,7 @@ public class PostsUtil {
     }
 
     /**
-     * Creates freecycle.org results page URL.
+     * Creates freecycle.org results page URL with query string.
      * 
      * @return freecycle.org results page URL
      */
