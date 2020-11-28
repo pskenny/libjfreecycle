@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Hashtable;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -24,6 +26,30 @@ public class Group {
 
     public Group(String groupId) {
         this.groupId = groupId;
+    }
+
+    public int getPostsSize(Post.Type type) {
+        int size = 0;
+        final String url = PostsUtil.buildPostsURL(groupId, type, 1, PostsUtil.DEFAULT_RESULTS_SIZE);
+
+        try {
+            Document doc = Jsoup.connect(url).get();
+
+            Element groupBox = doc.getElementById("group_box");
+
+            size = Integer.parseInt(groupBox.child(7).ownText().split(" ")[5]);
+
+            Element table = doc.getElementById("group_posts_table");
+
+            // table isn't in the DOM, therefore there are no posts
+            if (table == null)
+                return size;
+           
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return size;
     }
 
     /**
