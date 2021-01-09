@@ -79,7 +79,6 @@ public class Group {
             return 1;
         } else {
             double size = (double) postsSize;
-            System.out.println((int) Math.floor(size / PostsUtil.DEFAULT_RESULTS_SIZE));
             return (int) Math.ceil(size / PostsUtil.DEFAULT_RESULTS_SIZE);
         }
     }
