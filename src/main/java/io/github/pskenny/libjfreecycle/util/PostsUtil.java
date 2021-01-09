@@ -12,7 +12,7 @@ import io.github.pskenny.libjfreecycle.Post;
  */
 public class PostsUtil {
     // Default amount of results to retrieve
-    public static final int DEFAULT_RESULTS_SIZE = 10;
+    public static final int DEFAULT_RESULTS_SIZE = 100;
     public static final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy",
             Locale.ENGLISH);
 
