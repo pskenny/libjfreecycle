@@ -4,8 +4,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.stream.IntStream;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -26,30 +25,6 @@ public class Group {
 
     public Group(String groupId) {
         this.groupId = groupId;
-    }
-
-    public int getPostsSize(Post.Type type) {
-        int size = 0;
-        final String url = PostsUtil.buildPostsURL(groupId, type, 1, PostsUtil.DEFAULT_RESULTS_SIZE);
-
-        try {
-            Document doc = Jsoup.connect(url).get();
-
-            Element groupBox = doc.getElementById("group_box");
-
-            size = Integer.parseInt(groupBox.child(7).ownText().split(" ")[5]);
-
-            Element table = doc.getElementById("group_posts_table");
-
-            // table isn't in the DOM, therefore there are no posts
-            if (table == null)
-                return size;
-           
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-        return size;
     }
 
     /**
@@ -80,49 +55,83 @@ public class Group {
      */
     public Collection<Post> getPosts(Post.Type type, int results) {
         ArrayList<Post> posts = new ArrayList<>();
-        int page = 0;
-        int search = results;
+        int postsSize = getPostsSize(type);
 
-        // If results is more than can be displayed on a single page then request
-        // maximum amount possible per page (100)
-        if (results > 100)
-            search = 100;
+        if (postsSize == 0)
+            // no posts
+            return posts;
 
-        do {
-            ArrayList<Post> pagePosts = new ArrayList<>();
-            final String url = PostsUtil.buildPostsURL(groupId, type, page, results);
+        int pages = getMaxPages(postsSize);
+        posts.addAll(loadPages(type, pages));
 
-            try {
-                Document doc = Jsoup.connect(url).get();
-                Element table = doc.getElementById("group_posts_table");
+        return posts;
+    }
 
-                // table isn't in DOM, therefore no (more) results
-                if (table == null)
-                    return posts;
+    /**
+     * Returns highest page number needed to traverse freecycle.org pagination.
+     * 
+     * @param postsSize Number of posts
+     * @return Highest page number
+     */
+    private int getMaxPages(int postsSize) {
+        if (postsSize <= PostsUtil.DEFAULT_RESULTS_SIZE) {
+            // Fits in one page
+            return 1;
+        } else {
+            double size = (double) postsSize;
+            System.out.println((int) Math.floor(size / PostsUtil.DEFAULT_RESULTS_SIZE));
+            return (int) Math.ceil(size / PostsUtil.DEFAULT_RESULTS_SIZE);
+        }
+    }
 
-                Elements tableRow = table.getElementsByTag("tr");
-                tableRow.forEach(x -> {
-                    Post post = parsePostsFromTableRow(x, PostsUtil.DEFAULT_DATE_FORMAT);
-                    pagePosts.add(post);
-                });
+    /**
+     * Returns posts of a given type up to maxPages.
+     * 
+     * @param type     Post type
+     * @param maxPages Pages to parse
+     * @return Posts from pages
+     */
+    private ArrayList<Post> loadPages(Post.Type type, int maxPages) {
+        ArrayList<Post> posts = new ArrayList<>();
 
-                // Cut end of list off to not excede results argument
-                // Note: This is inefficient, it requests more posts than is needed from
-                // freecycle.org
-                if (results - posts.size() < search) {
-                    posts.addAll(pagePosts.subList(0, results - posts.size()));
-                } else {
-                    posts.addAll(pagePosts);
-                }
+        // Iterate through page numbers, get posts from each and add it to total posts
+        IntStream.rangeClosed(1, maxPages).parallel().forEach((page) -> {
+            ArrayList<Post> pagePosts = loadPage(type, page);
+            posts.addAll(pagePosts);
+        });
 
-                // page returned less posts than requested. It's reached the end.
-                if (pagePosts.size() < search) {
-                    break;
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } while (posts.size() < results);
+        return posts;
+    }
+
+    /**
+     * Get posts from page of given type.
+     * 
+     * @param type Post type
+     * @param page Page to retrieve
+     * @return Posts scraped from page
+     */
+    private ArrayList<Post> loadPage(Post.Type type, int page) {
+        ArrayList<Post> posts = new ArrayList<>();
+
+        try {
+            final String url = PostsUtil.buildPostsURL(groupId, type, page, PostsUtil.DEFAULT_RESULTS_SIZE);
+            Document doc = Jsoup.connect(url).get();
+            Element table = doc.getElementById("group_posts_table");
+
+            // table isn't in DOM, therefore no (more) results
+            if (table == null)
+                return posts;
+
+            Elements tableRow = table.getElementsByTag("tr");
+            // Iterate through, get post from each table row and add it to total posts
+            tableRow.forEach(x -> {
+                Post post = parsePostsFromTableRow(x, PostsUtil.DEFAULT_DATE_FORMAT);
+                if (post != null)
+                    posts.add(post);
+            });
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
 
         return posts;
     }
@@ -130,12 +139,12 @@ public class Group {
     /**
      * Parses group_posts_table table row element into a Post object.
      * 
-     * @return Post
+     * @return Post from table row
      */
     private Post parsePostsFromTableRow(Element row, SimpleDateFormat formatter) {
         String type = row.child(0).child(0).child(0).ownText();
         String dateTime = row.child(0).ownText().substring(0, row.child(0).ownText().lastIndexOf(' '));
-        // magic numbers in substring removes " (#" and ")"
+        // magic numbers (+ 3 and - 1) in substring removes " (#" and ")"
         String postId = row.child(0).ownText().substring(row.child(0).ownText().lastIndexOf(' ') + 3,
                 row.child(0).ownText().length() - 1);
         String title = row.child(1).child(0).text();
@@ -154,10 +163,37 @@ public class Group {
         post.setLocation(location);
         try {
             post.setDate(formatter.parse(dateTime));
-        } catch (java.text.ParseException ex) {
-            // Don't care atm
+        } catch (Exception ex) {
+            return null;
         }
 
         return post;
+    }
+
+    /**
+     * Returns number of posts of a given type.
+     * 
+     * @param type Type of posts to count
+     * @return Number of posts
+     */
+    public int getPostsSize(Post.Type type) {
+        int size = 0;
+        final String url = PostsUtil.buildPostsURL(groupId, type, 1, PostsUtil.DEFAULT_RESULTS_SIZE);
+
+        try {
+            Document doc = Jsoup.connect(url).get();
+            Element groupBox = doc.getElementById("group_box");
+            size = Integer.parseInt(groupBox.child(7).ownText().split(" ")[5]);
+            Element table = doc.getElementById("group_posts_table");
+
+            // table isn't in the DOM, therefore there are no posts
+            if (table == null)
+                return size;
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return size;
     }
 }
